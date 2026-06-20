@@ -1,0 +1,20 @@
+{
+  "accounts": [
+    {
+      "name": "Arknights Main",
+      "game": "arknights",
+      "credentials": {
+        "account_token": "YOUR_ACCOUNT_TOKEN_HERE",
+        "sk_game_role": "3_YOUR_UID_SERVER"
+      }
+    },
+    {
+      "name": "Genshin Alt",
+      "game": "genshin",
+      "credentials": {
+        "ltuid": "YOUR_LTUID",
+        "ltoken": "YOUR_LTOKEN"
+      }
+    }
+  ]
+}
