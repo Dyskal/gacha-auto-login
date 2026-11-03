@@ -1,6 +1,7 @@
+export type CanonicalHoyoGame = 'genshin' | 'hsr' | 'zzz' | 'hi3' | 'tot'
 export type CanonicalSkportGame = 'endfield'
-export type CanonicalGame = CanonicalSkportGame
-export type ProviderName = 'skport'
+export type CanonicalGame = CanonicalHoyoGame | CanonicalSkportGame
+export type ProviderName = 'hoyolab' | 'skport'
 
 export interface Account {
   name: string
@@ -19,6 +20,11 @@ export interface Config {
 }
 
 const SUPPORTED_GAMES: { game: CanonicalGame; provider: ProviderName; aliases: string[] }[] = [
+  {game: 'genshin', provider: 'hoyolab', aliases: ['genshin', 'gi', 'genshinimpact']},
+  {game: 'hsr', provider: 'hoyolab', aliases: ['hsr', 'starrail', 'honkaistarrail', 'hkrpg']},
+  {game: 'zzz', provider: 'hoyolab', aliases: ['zzz', 'zenless', 'zenlesszonezero']},
+  {game: 'hi3', provider: 'hoyolab', aliases: ['hi3', 'honkai', 'honkai3', 'honkai3rd', 'bh3']},
+  {game: 'tot', provider: 'hoyolab', aliases: ['tot', 'themis', 'tearsofthemis', 'nxx']},
   {game: 'endfield', provider: 'skport', aliases: ['endfield', 'arknights']},
 ] as const
 

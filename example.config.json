@@ -1,19 +1,18 @@
 {
   "accounts": [
     {
-      "name": "Arknights Main",
-      "game": "arknights",
+      "name": "Account 1",
+      "game": "endfield",
       "credentials": {
         "account_token": "YOUR_ACCOUNT_TOKEN_HERE",
         "sk_game_role": "3_YOUR_UID_SERVER"
       }
     },
     {
-      "name": "Genshin Alt",
-      "game": "genshin",
+      "name": "Account 2",
+      "game": "hsr",
       "credentials": {
-        "ltuid": "YOUR_LTUID",
-        "ltoken": "YOUR_LTOKEN"
+        "cookie": "YOUR_HOYOVERSE_COOKIE_HERE"
       }
     }
   ]

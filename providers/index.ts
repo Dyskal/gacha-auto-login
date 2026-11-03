@@ -1,3 +1,4 @@
+import {hoyolab} from './hoyolab'
 import {skport} from './skport'
 import type {Account, ProviderName} from '../utils/config'
 
@@ -12,5 +13,6 @@ export interface Provider {
 }
 
 export const providers: Record<ProviderName, Provider> = {
+  hoyolab,
   skport,
 }

@@ -1,73 +1,94 @@
 <h1 align="center">Gacha Auto Login</h1>
 
 <p align="center">
-  A lightweight, provider-agnostic, multi-account, one-shot automation script for daily gacha game check-ins (e.g. Arknights, Endfield). Perfect for GitHub Actions or external cron jobs.
+  A lightweight, concurrent, multi-account, one-shot automation script for daily gacha game check-ins (HoYoLAB & Skport). Built for Bun, local cron, and GitHub Actions.
 </p>
+
+---
+
+## Supported Games
+
+The script automatically detects the provider and resolves aliases, casing, spaces, and hyphens:
+
+| Provider    | Game                    | Accepted Aliases                               | Required Credentials            |
+|:------------|:------------------------|:-----------------------------------------------|:--------------------------------|
+| **HoYoLAB** | **Genshin Impact**      | `genshin`, `gi`, `genshin-impact`              | `cookie`                        |
+| **HoYoLAB** | **Honkai: Star Rail**   | `hsr`, `starrail`, `honkai-star-rail`, `hkrpg` | `cookie`                        |
+| **HoYoLAB** | **Zenless Zone Zero**   | `zzz`, `zenless`, `zenless-zone-zero`          | `cookie`                        |
+| **HoYoLAB** | **Honkai Impact 3rd**   | `hi3`, `honkai`, `honkai3rd`, `bh3`            | `cookie`                        |
+| **HoYoLAB** | **Tears of Themis**     | `tot`, `themis`, `tears-of-themis`, `nxx`      | `cookie`                        |
+| **Skport**  | **Arknights: Endfield** | `endfield`, `arknights`                        | `account_token`, `sk_game_role` |
 
 ---
 
 ## Key Features
 
-- **Provider Agnostic Architecture**: Easily extensible. Comes built-in with support for Gryphline / Skport.
-- **One-Shot Execution**: Highly optimized script that executes daily sign-ins across all configured accounts in sequence and gracefully exits. No background processes or memory-hogging intervals.
-- **Multi-Account & Multi-Game**: Check in to multiple different games across multiple different network providers from a single config.
-- **GitHub Actions Ready**: Run it daily for free using GitHub workflows.
+- **Concurrent Execution**: Executes all accounts and independent API requests in parallel via `Promise.allSettled()`. Total runtime is bounded by the slowest single network roundtrip (~1–2 seconds).
+- **Auto-Resolution & Aliases**: Write `hsr`, `starrail`, or `Honkai Star Rail`; the script maps them to the canonical game and network provider automatically.
+- **Dynamic Localization**: Automatically detects your account language (such as `fr-fr` or `en-us`) from your cookie and environment, adapting status labels and API responses.
+- **Resilient HTTP**: Built-in exponential backoff and request timeouts (30s) against transient 5xx errors or network drops.
+- **Zero Heavy Dependencies**: Runs directly on [Bun](https://bun.sh/) with native crypto, HTTP keep-alive, and standalone binary compilation.
+- **CI & Stateless Ready**: Reads configuration directly from the `CONFIG_JSON` environment variable without requiring disk I/O in CI runners.
 
 ---
 
 ## Deployment (GitHub Actions)
 
-The best way to run this script is via GitHub Actions so it runs automatically every day.
+Run daily for free without keeping your computer on:
 
-1. **Fork this repository.**
-2. Go to your fork's **Settings > Secrets and variables > Actions**.
-3. Create a new Repository Secret named `CONFIG_JSON` and paste your complete `config.json` contents into it.
-4. Go to the **Actions** tab in your repository and enable workflows.
-5. The script will now run automatically every day at 16:00 UTC. You can also trigger it manually from the Actions tab.
+1. **Fork this repository**.
+2. Go to **Settings > Secrets and variables > Actions** in your fork.
+3. Add a new Repository Secret named `CONFIG_JSON` with your complete `config.json` text as its value.
+4. Go to the **Actions** tab and enable workflows.
+5. The check-in runs daily at 16:00 UTC (configurable in `.github/workflows/cron.yaml`) and can be triggered manually via `workflow_dispatch`.
 
 ---
 
-## Local Deployment / Testing
+## Local Setup
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (v1.0+)
+- [Bun](https://bun.sh/) (v1.4+)
 
-### Setup
+### Quick Start
 
-1. **Clone the Repository**:
-   ```bash
-   git clone <your-repo-url>
-   cd gacha-auto-login
-   bun install
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/Dyskal/gacha-auto-login.git
+cd gacha-auto-login
 
-2. **Initialize Configuration**:
-   ```bash
-   cp example.config.json config.json
-   ```
-   *Fill in your credentials in `config.json` before proceeding.*
+# Install dependencies
+bun install
 
-3. **Run the Script**:
-   ```bash
-   bun run start
-   ```
+# Initialize configuration
+cp example.config.json config.json
+
+# Run check-in
+bun run start
+```
 
 ---
 
 ## Configuration
 
-The `config.json` is the central brain of the assistant. You must specify the `game` and supply a `credentials` object. The `provider` will be inferred automatically for known games (like `arknights` or `endfield`).
+Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment variable):
 
 ```json
 {
   "accounts": [
     {
-      "name": "My Main Account",
-      "game": "arknights",
+      "name": "My Account",
+      "game": "hsr",
       "credentials": {
-        "account_token": "YOUR_ACCOUNT_TOKEN",
-        "sk_game_role": "3_YOUR_UID_SERVER"
+        "cookie": "ltoken_v2=v2_...; ltuid_v2=...; mi18nLang=fr-fr;"
+      }
+    },
+    {
+      "name": "My Other Account",
+      "game": "endfield",
+      "credentials": {
+        "account_token": "YOUR_GRYPHLINE_ACCOUNT_TOKEN",
+        "sk_game_role": "3_YOUR_UID_3"
       }
     }
   ]
@@ -76,20 +97,48 @@ The `config.json` is the central brain of the assistant. You must specify the `g
 
 ---
 
-## Obtaining Skport Credentials (Gryphline)
+## Obtaining Credentials
 
-To connect the assistant to your Skport account (Arknights / Endfield):
+### HoYoLAB Games (Genshin, Star Rail, ZZZ, HI3, Tears of Themis)
+
+1. Open a browser and log into [HoYoLAB](https://www.hoyolab.com/).
+2. Open Developer Tools (<kbd>F12</kbd> or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) and go to the **Application** (or **Storage**) tab.
+3. Select **Cookies** > `https://www.hoyolab.com`.
+4. Copy the values of `ltoken_v2` and `ltuid_v2` (or copy the entire cookie header string).
+5. Paste into `credentials.cookie`.
+
+> **Note**: For check-ins, `ltoken_v2` and `ltuid_v2` are the only mandatory tokens.
+
+### Skport / Gryphline (Endfield)
 
 1. Log in to the [SKPort Endfield Portal](https://game.skport.com/endfield/sign-in).
-2. Open **Developer Tools** (F12) -> **Application** -> **Cookies**.
-3. Find `ACCOUNT_TOKEN` and copy its value.
-4. URL decode if needed (replace `%2F` with `/`).
-5. Add to config under `credentials` as `account_token`.
+2. Open Developer Tools (<kbd>F12</kbd>) > **Application** > **Cookies** > `https://game.skport.com`.
+3. Locate `ACCOUNT_TOKEN` and copy its value. URL-decode if necessary (replace `%2F` with `/`).
+4. To find `sk_game_role`: inspect any authenticated request payload in the **Network** tab, or copy your role ID from your portal URL/profile (formatted like `3_<UID>_<SERVER>`).
+5. Add both under `credentials.account_token` and `credentials.sk_game_role`.
 
-> **Note**: The account token is used to authenticate with Gryphline and obtain session credentials dynamically.
+---
+
+## Environment Variables
+
+| Variable      | Description                                                             | Default |
+|:--------------|:------------------------------------------------------------------------|:--------|
+| `CONFIG_JSON` | Raw JSON string of the configuration (overrides `config.json` on disk). | *None*  |
+| `LOG_LEVEL`   | Log verbosity filter (`error`, `warn`, `info`, `debug`).                | `info`  |
+
+---
+
+## Available Commands
+
+| Command         | Action                                                            |
+|:----------------|:------------------------------------------------------------------|
+| `bun run start` | Run all daily check-ins once and exit.                            |
+| `bun run dev`   | Watch mode for development.                                       |
+| `bun run check` | Run TypeScript strict type verification (`tsc --noEmit`).         |
+| `bun run build` | Compile a minified, standalone native binary (`dist/gacha-auto`). |
 
 ---
 
 ## Disclaimer
 
-This is an unofficial tool and is not affiliated with any game developers or publishers (Hypergryph, Gryphline, Hoyoverse, Kuro Games, etc). Use of this tool may violate the terms of service. The authors are not responsible for any consequences of using this tool.
+This is an unofficial, community-maintained tool. It is not affiliated with, endorsed by, or associated with HoYoverse, Cognosphere, Hypergryph, or Gryphline. Use at your own discretion.

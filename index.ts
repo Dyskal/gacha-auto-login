@@ -17,11 +17,12 @@ async function main(): Promise<void> {
 
       try {
         const result = await provider.checkIn(account)
+        const isFr = Boolean(result.message && /[\u00C0-\u017F]|connexion|déjà|validé/i.test(result.message))
         const label = result.status === 'success'
-          ? 'Claimed'
+          ? (isFr ? 'Validé' : 'Claimed')
           : result.status === 'already_claimed'
-            ? 'Already claimed'
-            : 'Error'
+            ? (isFr ? 'Déjà validé' : 'Already claimed')
+            : (isFr ? 'Erreur' : 'Error')
 
         logger.info(`  [${account.name}] ${label}${result.message ? ` - ${result.message}` : ''}`)
         return result.status !== 'error'
