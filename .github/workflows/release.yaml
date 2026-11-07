@@ -1,0 +1,52 @@
+name: Release Build and Upload
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_upload:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check TypeScript types
+        run: bun check
+
+      - name: Compile multi-platform binaries
+        run: bun run --parallel "build:*"
+
+      - name: Generate artifact attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: 'dist/gacha-auto-*'
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: 'dist/gacha-auto-*'
+          draft: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          make_latest: true
+          draft: false

@@ -1,0 +1,10 @@
+[fmt]
+printWidth = 120
+semi = false
+singleQuote = true
+sortImports = true
+sortPackageJson = true
+
+[[fmt.overrides]]
+files = ["*.md"]
+options = { printWidth = 300 }

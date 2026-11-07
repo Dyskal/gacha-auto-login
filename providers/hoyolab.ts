@@ -1,7 +1,7 @@
-import type {Provider, CheckInResult} from './index'
-import type {Account, CanonicalHoyoGame} from '../utils/config'
+import type { Account, CanonicalHoyoGame } from '../utils/config'
+import { fetchWithRetry } from '../utils/http'
 import logger from '../utils/logger'
-import {fetchWithRetry} from '../utils/http'
+import type { CheckInResult, Provider } from './index'
 
 interface HoyoGameConfig {
   name: string
@@ -50,11 +50,11 @@ const GAMES: Record<CanonicalHoyoGame, HoyoGameConfig> = {
 }
 
 const BASE_HEADERS: Record<string, string> = {
-  'accept': 'application/json, text/plain, */*',
+  accept: 'application/json, text/plain, */*',
   'content-type': 'application/json;charset=UTF-8',
-  'origin': 'https://act.hoyolab.com',
-  'priority': 'u=1, i',
-  'referer': 'https://act.hoyolab.com/',
+  origin: 'https://act.hoyolab.com',
+  priority: 'u=1, i',
+  referer: 'https://act.hoyolab.com/',
   'sec-ch-ua': '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"',
   'sec-ch-ua-mobile': '?0',
   'sec-ch-ua-platform': '"Windows"',
@@ -63,7 +63,8 @@ const BASE_HEADERS: Record<string, string> = {
   'sec-fetch-site': 'same-site',
   'x-rpc-app_version': '1.5.0',
   'x-rpc-client_type': '5',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
+  'user-agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
 }
 
 interface HoyoResponse<T = unknown> {
@@ -121,11 +122,11 @@ async function hoyoFetch<T>(
     body = JSON.stringify(params)
   }
 
-  const res = await fetchWithRetry(parsed.toString(), {method, headers, body})
+  const res = await fetchWithRetry(parsed.toString(), { method, headers, body })
   try {
     return (await res.json()) as HoyoResponse<T>
   } catch {
-    return {retcode: -1, message: 'Invalid JSON response'}
+    return { retcode: -1, message: 'Invalid JSON response' }
   }
 }
 
@@ -134,14 +135,14 @@ export const hoyolab: Provider = {
   async checkIn(account: Account): Promise<CheckInResult> {
     const config = GAMES[account.game as CanonicalHoyoGame]
     if (!config) {
-      return {status: 'error', message: `Unknown Hoyolab game: ${account.game}`}
+      return { status: 'error', message: `Unknown Hoyolab game: ${account.game}` }
     }
 
     logger.info(`  Checking in ${config.name} via hoyolab for ${account.name}...`)
 
     const cookie = account.credentials.cookie
     if (!cookie) {
-      return {status: 'error', message: 'Missing credentials (cookie)'}
+      return { status: 'error', message: 'Missing credentials (cookie)' }
     }
 
     const lang = extractLang(cookie)
@@ -149,22 +150,19 @@ export const hoyolab: Provider = {
 
     try {
       const uid = extractUid(cookie)
-      const profilePromise = uid && config.gameId > 0
-        ? hoyoFetch<GameRecordList>(
-            'https://bbs-api-os.hoyolab.com/game_record/card/wapi/getGameRecordCard',
-            'GET',
-            cookie,
-            {uid},
-          ).catch(() => null)
-        : null
+      const profilePromise =
+        uid && config.gameId > 0
+          ? hoyoFetch<GameRecordList>(
+              'https://bbs-api-os.hoyolab.com/game_record/card/wapi/getGameRecordCard',
+              'GET',
+              cookie,
+              {
+                uid,
+              },
+            ).catch(() => null)
+          : null
 
-      const checkInPromise = hoyoFetch(
-        config.signUrl,
-        'POST',
-        cookie,
-        {act_id: config.actId},
-        config.signgame,
-      )
+      const checkInPromise = hoyoFetch(config.signUrl, 'POST', cookie, { act_id: config.actId }, config.signgame)
 
       const [record, res] = await Promise.all([profilePromise, checkInPromise])
 
@@ -178,16 +176,16 @@ export const hoyolab: Provider = {
 
       if (res.retcode === 0) {
         const defaultMsg = isFr ? 'Connexion validée avec succès' : 'Claimed successfully'
-        return {status: 'success', message: res.message || defaultMsg}
+        return { status: 'success', message: res.message || defaultMsg }
       }
       if (res.retcode === -5003 || res.message?.includes('already')) {
         const defaultMsg = isFr ? "Connexion quotidienne déjà effectuée aujourd'hui" : 'Already claimed'
-        return {status: 'already_claimed', message: res.message || defaultMsg}
+        return { status: 'already_claimed', message: res.message || defaultMsg }
       }
-      return {status: 'error', message: res.message || `Code ${res.retcode}`}
+      return { status: 'error', message: res.message || `Code ${res.retcode}` }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      return {status: 'error', message: msg}
+      return { status: 'error', message: msg }
     }
   },
 }

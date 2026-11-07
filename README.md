@@ -1,7 +1,7 @@
 <h1 align="center">Gacha Auto Login</h1>
 
 <p align="center">
-  A lightweight, concurrent, multi-account, one-shot automation script for daily gacha game check-ins (HoYoLAB & Skport). Built for Bun, local cron, and GitHub Actions.
+  A lightweight, concurrent, multi-account automation tool for daily gacha game check-ins (HoYoLAB & Skport). Supports one-shot execution and persistent daemon scheduling with Bun.
 </p>
 
 ---
@@ -11,7 +11,7 @@
 The script automatically detects the provider and resolves aliases, casing, spaces, and hyphens:
 
 | Provider    | Game                    | Accepted Aliases                               | Required Credentials            |
-|:------------|:------------------------|:-----------------------------------------------|:--------------------------------|
+| :---------- | :---------------------- | :--------------------------------------------- | :------------------------------ |
 | **HoYoLAB** | **Genshin Impact**      | `genshin`, `gi`, `genshin-impact`              | `cookie`                        |
 | **HoYoLAB** | **Honkai: Star Rail**   | `hsr`, `starrail`, `honkai-star-rail`, `hkrpg` | `cookie`                        |
 | **HoYoLAB** | **Zenless Zone Zero**   | `zzz`, `zenless`, `zenless-zone-zero`          | `cookie`                        |
@@ -24,23 +24,11 @@ The script automatically detects the provider and resolves aliases, casing, spac
 ## Key Features
 
 - **Concurrent Execution**: Executes all accounts and independent API requests in parallel via `Promise.allSettled()`. Total runtime is bounded by the slowest single network roundtrip (~1–2 seconds).
+- **Persistent Cron Scheduling**: Native background daemon mode via `Bun.cron` with custom per-account schedules (evaluated in UTC).
 - **Auto-Resolution & Aliases**: Write `hsr`, `starrail`, or `Honkai Star Rail`; the script maps them to the canonical game and network provider automatically.
 - **Dynamic Localization**: Automatically detects your account language (such as `fr-fr` or `en-us`) from your cookie and environment, adapting status labels and API responses.
 - **Resilient HTTP**: Built-in exponential backoff and request timeouts (30s) against transient 5xx errors or network drops.
-- **Zero Heavy Dependencies**: Runs directly on [Bun](https://bun.sh/) with native crypto, HTTP keep-alive, and standalone binary compilation.
-- **CI & Stateless Ready**: Reads configuration directly from the `CONFIG_JSON` environment variable without requiring disk I/O in CI runners.
-
----
-
-## Deployment (GitHub Actions)
-
-Run daily for free without keeping your computer on:
-
-1. **Fork this repository**.
-2. Go to **Settings > Secrets and variables > Actions** in your fork.
-3. Add a new Repository Secret named `CONFIG_JSON` with your complete `config.json` text as its value.
-4. Go to the **Actions** tab and enable workflows.
-5. The check-in runs daily at 16:00 UTC (configurable in `.github/workflows/cron.yaml`) and can be triggered manually via `workflow_dispatch`.
+- **Standalone Binaries**: Precompiled, zero-dependency standalone executables available for Linux, Windows, and macOS.
 
 ---
 
@@ -48,7 +36,7 @@ Run daily for free without keeping your computer on:
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (v1.4+)
+- [Bun](https://bun.sh/) (v1.4+) or a precompiled standalone binary from [Releases](https://github.com/Dyskal/gacha-auto-login/releases).
 
 ### Quick Start
 
@@ -63,15 +51,18 @@ bun install
 # Initialize configuration
 cp example.config.json config.json
 
-# Run check-in
+# Run check-in once
 bun run start
+
+# Or run persistently in daemon mode based on per-account cron schedules
+bun run cron
 ```
 
 ---
 
 ## Configuration
 
-Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment variable):
+Place your accounts in `config.json`:
 
 ```json
 {
@@ -79,6 +70,7 @@ Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment varia
     {
       "name": "My Account",
       "game": "hsr",
+      "cron": "0 16 * * *",
       "credentials": {
         "cookie": "ltoken_v2=v2_...; ltuid_v2=...; mi18nLang=fr-fr;"
       }
@@ -86,6 +78,7 @@ Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment varia
     {
       "name": "My Other Account",
       "game": "endfield",
+      "cron": "30 4 * * *",
       "credentials": {
         "account_token": "YOUR_GRYPHLINE_ACCOUNT_TOKEN",
         "sk_game_role": "3_YOUR_UID_3"
@@ -94,6 +87,8 @@ Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment varia
   ]
 }
 ```
+
+> **Note**: `name`, `game`, `cron`, and `credentials` are mandatory for each account. The `cron` field accepts standard 5-part cron syntax (`minute hour day month day-of-week`) evaluated in UTC and is validated on startup.
 
 ---
 
@@ -119,23 +114,41 @@ Place your accounts in `config.json` (or pass as `CONFIG_JSON` environment varia
 
 ---
 
-## Environment Variables
+## Persistent Cron Mode
 
-| Variable      | Description                                                             | Default |
-|:--------------|:------------------------------------------------------------------------|:--------|
-| `CONFIG_JSON` | Raw JSON string of the configuration (overrides `config.json` on disk). | *None*  |
-| `LOG_LEVEL`   | Log verbosity filter (`error`, `warn`, `info`, `debug`).                | `info`  |
+Run the binary or script as a persistent background daemon. Each account defines its own schedule via the `cron` field (evaluated in UTC):
+
+```bash
+# Run persistent daemon mode with Bun
+bun run cron
+
+# Or with a compiled standalone binary (e.g. Linux x64)
+./dist/gacha-auto-linux-x64 --cron
+
+# On Windows
+.\dist\gacha-auto-windows-x64.exe --cron
+```
+
+Running without `-c` / `--cron` executes all accounts once and exits immediately (`0` on success, `1` if any check-in fails).
+
+### CLI Options
+
+| Option / Flag | Description                                                      |
+| :------------ | :--------------------------------------------------------------- |
+| `-c, --cron`  | Run in persistent daemon mode using per-account schedules (UTC). |
+| `-h, --help`  | Display CLI usage and options.                                   |
 
 ---
 
 ## Available Commands
 
-| Command         | Action                                                            |
-|:----------------|:------------------------------------------------------------------|
-| `bun run start` | Run all daily check-ins once and exit.                            |
-| `bun run dev`   | Watch mode for development.                                       |
-| `bun run check` | Run TypeScript strict type verification (`tsc --noEmit`).         |
-| `bun run build` | Compile a minified, standalone native binary (`dist/gacha-auto`). |
+| Command                        | Action                                                                                                 |
+| :----------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `bun run start`                | Run all daily check-ins once and exit.                                                                 |
+| `bun run cron`                 | Run check-ins in persistent cron daemon mode (`bun index.ts --cron`).                                  |
+| `bun run typecheck`            | Run TypeScript type verification via Bun's built-in type checker (`bun check`).                        |
+| `bun run build:<target>`       | Compile a standalone binary for a specific target (e.g. `build:linux-x64`, `build:windows-x64`, etc.). |
+| `bun run --parallel "build:*"` | Compile standalone binaries for all supported platforms in parallel.                                   |
 
 ---
 

@@ -1,6 +1,6 @@
-import {hoyolab} from './hoyolab'
-import {skport} from './skport'
-import type {Account, ProviderName} from '../utils/config'
+import type { Account, ProviderName } from '../utils/config'
+import { hoyolab } from './hoyolab'
+import { skport } from './skport'
 
 export interface CheckInResult {
   status: 'success' | 'already_claimed' | 'error'

@@ -3,6 +3,7 @@
     {
       "name": "Account 1",
       "game": "endfield",
+      "cron": "0 16 * * *",
       "credentials": {
         "account_token": "YOUR_ACCOUNT_TOKEN_HERE",
         "sk_game_role": "3_YOUR_UID_SERVER"
@@ -11,6 +12,7 @@
     {
       "name": "Account 2",
       "game": "hsr",
+      "cron": "30 4 * * *",
       "credentials": {
         "cookie": "YOUR_HOYOVERSE_COOKIE_HERE"
       }

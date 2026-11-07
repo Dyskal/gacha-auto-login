@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    "types": [
-      "bun-types"
-    ],
+    "types": ["bun-types"],
     "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo",
     // Bundler mode
     "moduleResolution": "bundler",
@@ -29,7 +25,5 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
