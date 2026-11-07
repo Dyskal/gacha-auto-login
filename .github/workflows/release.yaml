@@ -33,6 +33,9 @@ jobs:
       - name: Compile multi-platform binaries
         run: bun run --parallel "build:*"
 
+      - name: Remove sourcemaps from dist
+        run: rm dist/*.map
+
       - name: Generate artifact attestation
         uses: actions/attest@v4
         with:
