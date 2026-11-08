@@ -140,15 +140,65 @@ Running without `-c` / `--cron` executes all accounts once and exits immediately
 
 ---
 
+## Docker Deployment
+
+Multi-architecture images (`linux/amd64` and `linux/arm64`) are built on hardened distroless Chainguard images and published to GitHub Container Registry.
+
+### Quick Start with Docker CLI
+
+```bash
+# Extract the configuration template from the image
+docker run --rm ghcr.io/dyskal/gacha-auto-login:latest cat example.config.json > config.json
+
+# Run persistently in daemon mode
+docker run -d \
+  --name gacha-auto \
+  --restart unless-stopped \
+  -v $(pwd)/config.json:/home/container/config.json:ro \
+  ghcr.io/dyskal/gacha-auto-login:latest
+```
+
+### One-Shot Check-in via Docker
+
+```bash
+docker run --rm \
+  -v $(pwd)/config.json:/home/container/config.json:ro \
+  ghcr.io/dyskal/gacha-auto-login:latest gacha-auto
+```
+
+> **Tip**: You can mount your configuration anywhere and point to it with `-e CONFIG_PATH=/path/to/config.json`.
+
+---
+
+## Pterodactyl / Pelican Egg
+
+The repository includes a ready-to-import egg for Pterodactyl and Pelican panels: `egg-gacha-auto-login.json`.
+
+### Features
+
+- Multi-arch support (`amd64` and `arm64`).
+- Pre-seeds a starter `config.json` on installation.
+- Configurable execution mode (`--cron` daemon or one-shot) via the `START_ARGS` variable.
+- Supports automatic egg updates via `update_url`.
+
+### Installation
+
+1. Download [`egg-gacha-auto-login.json`](./egg-gacha-auto-login.json).
+2. In Pterodactyl Panel, navigate to **Admin Panel** > **Nests** > select or create a nest, and click **Import Egg**.
+3. Select `egg-gacha-auto-login.json`.
+4. Create a new server using the **Gacha Auto Login** egg with image `ghcr.io/dyskal/gacha-auto-login:latest`.
+5. Open the server's **File Manager**, edit the pre-provisioned `config.json` with your credentials, and start the server.
+
+---
+
 ## Available Commands
 
-| Command                        | Action                                                                                                 |
-| :----------------------------- | :----------------------------------------------------------------------------------------------------- |
-| `bun run start`                | Run all daily check-ins once and exit.                                                                 |
-| `bun run cron`                 | Run check-ins in persistent cron daemon mode (`bun index.ts --cron`).                                  |
-| `bun run typecheck`            | Run TypeScript type verification via Bun's built-in type checker (`bun check`).                        |
-| `bun run build:<target>`       | Compile a standalone binary for a specific target (e.g. `build:linux-x64`, `build:windows-x64`, etc.). |
-| `bun run --parallel "build:*"` | Compile standalone binaries for all supported platforms in parallel.                                   |
+| Command             | Action                                                                |
+| :------------------ | :-------------------------------------------------------------------- |
+| `bun run start`     | Run all daily check-ins once and exit.                                |
+| `bun run cron`      | Run check-ins in persistent cron daemon mode (`bun index.ts --cron`). |
+| `bun run typecheck` | Run TypeScript type verification via Bun's built-in type checker.     |
+| `bun run build`     | Compile a standalone binary for the current host platform.            |
 
 ---
 
